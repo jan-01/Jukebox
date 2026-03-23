@@ -1,0 +1,98 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ===========================
+# Flask / App runtime
+# ===========================
+flask_session/
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# ===========================
+# Secrets & credentials
+# ===========================
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+
+# Certificate artifacts
+*.csr
+*.srl
+extfile.cnf
+
+# infrastructure/certs — exclude all generated cert files and keys
+infrastructure/certs/*.key
+infrastructure/certs/*.pem
+infrastructure/certs/*.crt
+infrastructure/certs/*.csr
+infrastructure/certs/*.srl
+infrastructure/certs/san.cnf
+
+# Cosign signing key (private)
+cosign.key
+cosign.key.sig
+
+# ===========================
+# Kubernetes secrets (only the secret manifest)
+# ===========================
+# Generated at deploy-time via kubectl — never commit real credentials.
+infrastructure/k8s/postgres-secret.yaml
+
+
+
+# ===========================
+# Node / Tailwind CSS
+# ===========================
+node_modules/
+frontend/static/output.css
+
+# ===========================
+# Build artifacts
+# ===========================
+sbom.json
+test.txt
+
+# ===========================
+# IDE / Editor
+# ===========================
+.idea/
+.vscode/
+*.swp
+*.swo
+CLAUDE.md
+docs/SECURITY_AUDIT.md
+docs/checkliste.md
+*~
+.DS_Store
+Thumbs.db
+
+# ===========================
+# Docker
+# ===========================
+# (docker-compose override files with local overrides)
+docker-compose.override.yml

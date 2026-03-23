@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jukebox Song Reviews</title>
+    <link rel="stylesheet" href="/static/output.css">
+    <link rel="stylesheet" href="/static/index.css">
+</head>
+<body class="bg-gray-900 min-h-screen flex items-center justify-center p-4">
+<div id="app-container" class="w-full max-w-4xl bg-white shadow-2xl rounded-xl">
+
+    <!-- Loading -->
+    <div id="loading-view" class="p-8 text-center">
+        <h2 class="text-xl font-semibold text-gray-700">Wird geladen...</h2>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-view" class="hidden p-6 space-y-8">
+        <header class="bg-indigo-700 p-6 rounded-t-xl shadow-lg flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Jukebox Song Review Hub</h1>
+                <p id="user-info" class="text-xs text-indigo-300 mt-2"></p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="filter-toggle" class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-400 text-sm">
+                    Meine Reviews
+                </button>
+                <button id="logout-button" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm">
+                    Abmelden
+                </button>
+            </div>
+        </header>
+
+        <!-- Review Form -->
+        <div class="bg-gray-100 p-5 rounded-lg border border-gray-200">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Neuen Review hinzufügen</h2>
+            <form id="review-form" class="space-y-4">
+                <div>
+                    <label for="movie-title">Song-Titel</label>
+                    <input type="text" id="movie-title" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label for="review-text">Dein Review</label>
+                    <textarea id="review-text" rows="3" required class="w-full p-3 border rounded-lg"></textarea>
+                </div>
+                <div>
+                    <label>Sterne-Bewertung (1–5)</label>
+                    <div id="star-rating" class="flex space-x-1" role="group" aria-label="Sterne-Bewertung"></div>
+                    <input type="hidden" id="star-input" value="0">
+                </div>
+                <button type="submit" id="submit-button" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700">
+                    Review speichern
+                </button>
+            </form>
+        </div>
+
+        <!-- Reviews List -->
+        <div>
+            <h2 id="reviews-heading" class="text-2xl font-semibold text-gray-800 mb-4">Alle Reviews</h2>
+            <div id="reviews-list" class="space-y-4">
+                <p id="no-reviews" class="text-gray-500 italic">Noch keine Reviews vorhanden.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-red-100 rounded-full p-2 flex-shrink-0">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Review löschen</h2>
+                <p id="confirm-modal-message" class="text-sm text-gray-500 mt-1">Möchtest du diesen Review wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</p>
+            </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+            <button id="confirm-modal-ok" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium">
+                Löschen
+            </button>
+            <button id="confirm-modal-cancel" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium">
+                Abbrechen
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-semibold text-gray-800">Review bearbeiten</h2>
+            <button id="edit-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="edit-form" class="space-y-4">
+            <input type="hidden" id="edit-review-id">
+            <div>
+                <label for="edit-movie-title">Song-Titel</label>
+                <input type="text" id="edit-movie-title" required class="w-full p-3 border rounded-lg">
+            </div>
+            <div>
+                <label for="edit-review-text">Dein Review</label>
+                <textarea id="edit-review-text" rows="3" required class="w-full p-3 border rounded-lg"></textarea>
+            </div>
+            <div>
+                <label>Sterne-Bewertung (1–5)</label>
+                <div id="edit-star-rating" class="flex space-x-1" role="group" aria-label="Sterne-Bewertung"></div>
+                <input type="hidden" id="edit-star-input" value="0">
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" id="edit-submit-button" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+                    Änderungen speichern
+                </button>
+                <button type="button" id="edit-cancel-button" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300">
+                    Abbrechen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>

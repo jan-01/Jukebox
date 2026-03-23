@@ -1,0 +1,55 @@
+# Node / Tailwind build tooling (CSS is pre-built by CI before docker build)
+node_modules/
+package.json
+package-lock.json
+frontend/static/input.css
+
+# Python artifacts
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment / secrets
+.env
+.env.*
+*.secrets
+**/*.key
+*.key
+**/*.csr
+*.csr
+**/*.srl
+*.srl
+extfile.cnf
+infrastructure/certs/
+
+# Databases
+*.db
+*.sqlite
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+
+# Docs & planning (not needed in image)
+docs/
+CLAUDE.md
+README.md
+
+# Flask session files
+flask_session/
+
+# CI
+.github/
+
+# Test artifacts
+test.txt
+sbom.json

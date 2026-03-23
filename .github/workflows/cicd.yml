@@ -1,0 +1,223 @@
+name: CI/CD - Build, Sign & Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ── a. SBOM ────────────────────────────────────────────────────────────────
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate SBOM from source (CycloneDX JSON)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+          mkdir -p evidence/sbom
+          syft dir:. \
+            -o cyclonedx-json=evidence/sbom/sbom.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: evidence/sbom/sbom.json
+
+  # ── b. SAST / SCA / Secret Scan ────────────────────────────────────────────
+  # Quality gate i: gitleaks --exit-code 1 → Job schlägt fehl →
+  # alle Downstream-Jobs (build, sign, quality-gate) werden automatisch geblockt.
+  scan:
+    needs: sbom
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements.txt
+      - name: Syntax check
+        run: python -m py_compile $(git ls-files "*.py")
+      - name: SAST - bandit
+        run: |
+          pip install bandit
+          mkdir -p evidence/sast
+          bandit -r backend/ --severity-level high -f json -o evidence/sast/bandit.json
+      - name: SCA - pip-audit
+        run: |
+          pip install pip-audit
+          mkdir -p evidence/sca
+          pip-audit -r backend/requirements.txt -f json -o evidence/sca/pip-audit.json
+      - name: Secret scan - gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks
+          mkdir -p evidence/secrets
+          gitleaks detect \
+            --source . \
+            --config .gitleaks.toml \
+            --report-format json \
+            --report-path evidence/secrets/gitleaks.json \
+            --exit-code 1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: scan-reports
+          path: |
+            evidence/sast/bandit.json
+            evidence/sca/pip-audit.json
+            evidence/secrets/gitleaks.json
+
+  # ── c. Build ───────────────────────────────────────────────────────────────
+  # Image wird als tar.gz exportiert und als Artifact weitergereicht.
+  # Kein Registry-Push hier.
+  build:
+    needs: scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Build Tailwind CSS
+        run: |
+          npm ci
+          npm run css:build
+      - name: Build Docker image
+        run: docker build -t jukebox:latest .
+      - name: Export image as artifact
+        run: |
+          mkdir -p evidence/build
+          docker save jukebox:latest | gzip > evidence/build/jukebox.tar.gz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docker-image
+          path: evidence/build/jukebox.tar.gz
+
+  # ── d. Image Signing ───────────────────────────────────────────────────────
+  # Signiert das Image-Tar direkt mit cosign sign-blob — keine Registry nötig.
+  # Rekor-Transparency-Log ist deaktiviert (COSIGN_TLOG_UPLOAD=false).
+  # Secrets benötigt: COSIGN_PRIVATE_KEY, COSIGN_PASSWORD
+  sign:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: docker-image
+          path: evidence/build
+      - uses: sigstore/cosign-installer@v4.1.0
+      - name: Sign image tar
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_TLOG_UPLOAD: "false"
+        run: |
+          mkdir -p evidence/signing
+          echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
+          cosign sign-blob \
+            --key cosign.key \
+            --output-signature evidence/signing/image.sig \
+            evidence/build/jukebox.tar.gz \
+            2>&1 | tee evidence/signing/sign.log
+          echo "---" >> evidence/signing/sign.log
+          echo "File:      evidence/build/jukebox.tar.gz" >> evidence/signing/sign.log
+          echo "Git SHA:   ${{ github.sha }}" >> evidence/signing/sign.log
+          echo "Timestamp: $(date -u)" >> evidence/signing/sign.log
+          rm -f cosign.key
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signing-evidence
+          path: |
+            evidence/signing/image.sig
+            evidence/signing/sign.log
+
+  # ── e. Quality Gate ────────────────────────────────────────────────────────
+  # Bedingungen:
+  #   i.   Secrets → bereits in Job "scan" durch gitleaks geblockt
+  #   ii.  CVSS >= 7.0 (HIGH/CRITICAL) → Trivy exit-code: "1"
+  #   iii. Signatur fehlt oder ungültig → cosign verify-blob schlägt fehl
+  # Secrets benötigt: COSIGN_PUBLIC_KEY
+  quality-gate:
+    needs: sign
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # Wird für den Promote-Schritt benötigt (s.u.)
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: docker-image
+          path: evidence/build
+      - uses: actions/download-artifact@v6
+        with:
+          name: signing-evidence
+          path: evidence/signing
+      - uses: sigstore/cosign-installer@v4.1.0
+      - name: Verify image signature
+        env:
+          COSIGN_PUBLIC_KEY: ${{ secrets.COSIGN_PUBLIC_KEY }}
+          COSIGN_EXPERIMENTAL: "0"
+        run: |
+          mkdir -p evidence/signing
+          echo "$COSIGN_PUBLIC_KEY" | tr -d '\r' > cosign.pub
+          cosign verify-blob \
+            --key cosign.pub \
+            --signature evidence/signing/image.sig \
+            --insecure-ignore-tlog=true \
+            evidence/build/jukebox.tar.gz \
+            2>&1 | tee evidence/signing/verify.log
+          rm -f cosign.pub
+      - name: Load Docker image
+        run: docker load < evidence/build/jukebox.tar.gz
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: jukebox:latest
+          format: table
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          trivy-config: trivy.yaml
+      - name: Record run metadata
+        if: always()
+        run: |
+          mkdir -p evidence/run
+          cat <<EOF > evidence/run/run-info.json
+          {
+            "workflow":    "${{ github.workflow }}",
+            "run_id":      "${{ github.run_id }}",
+            "run_number":  "${{ github.run_number }}",
+            "sha":         "${{ github.sha }}",
+            "ref":         "${{ github.ref }}",
+            "actor":       "${{ github.actor }}",
+            "timestamp":   "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "image":       "jukebox:latest"
+          }
+          EOF
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: quality-gate-evidence
+          path: |
+            evidence/signing/verify.log
+            evidence/run/run-info.json
+      # ── Push nach erfolgreichem Quality Gate ───────────────────────────────
+      # Erst wenn alle Quality Gates bestanden sind, wird das Image gepusht.
+      # Uncomment to enable (COSIGN_PRIVATE_KEY + COSIGN_PASSWORD ebenfalls nötig
+      # um das gepushte Image in der Registry neu zu signieren):
+      # - uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Push image to registry
+      #   run: |
+      #     docker tag jukebox:latest ghcr.io/${{ github.repository }}:latest
+      #     docker tag jukebox:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
+      #     docker push ghcr.io/${{ github.repository }}:latest
+      #     docker push ghcr.io/${{ github.repository }}:${{ github.sha }}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Signup</title>
+    <link rel="stylesheet" href="/static/signup.css">
+</head>
+
+<body>
+   <div class="glass">
+    <h2>Jukeboxd Registrierung</h2>
+
+    <input type="text" id="username" placeholder="Benutzername">
+    <input type="password" id="password" placeholder="Passwort">
+
+    <ul class="pw-hints" id="pw-hints">
+        <li id="hint-length">Mindestens 8 Zeichen</li>
+        <li id="hint-upper">Mindestens ein Großbuchstabe</li>
+        <li id="hint-lower">Mindestens ein Kleinbuchstabe</li>
+        <li id="hint-digit">Mindestens eine Ziffer</li>
+        <li id="hint-special">Mindestens ein Sonderzeichen</li>
+    </ul>
+
+    <button id="signup-button">Konto erstellen</button>
+
+    <a href="/login">Bereits registriert? Einloggen</a>
+
+    <div id="error-msg" class="error hidden"></div>
+ </div>
+
+  <script src="/static/signup.js"></script>
+</body>
+</html>

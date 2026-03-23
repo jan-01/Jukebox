@@ -1,0 +1,18 @@
+body { font-family: 'Inter', sans-serif; }
+.star-icon { cursor: pointer; transition: color 0.2s, transform 0.1s; }
+.star-icon:hover { transform: scale(1.1); }
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 14px;
+    transition: opacity 0.5s;
+}
+.toast-success { background: #22c55e; }
+.toast-error   { background: #ef4444; }

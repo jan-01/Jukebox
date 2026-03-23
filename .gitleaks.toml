@@ -1,0 +1,8 @@
+title = "Gitleaks config"
+
+[allowlist]
+description = "Intentional dev-only credentials and self-signed certs"
+paths = [
+  "infrastructure/k8s/postgres-secret.yaml",
+  "infrastructure/k8s/tls.yaml",
+]
