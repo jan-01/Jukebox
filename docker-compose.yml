@@ -27,13 +27,8 @@ services:
     container_name: jukebox_web
     ports:
       - "5000:5000"
-    environment:
-      - FLASK_ENV=production
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-change-in-prod}
-      - DB_HOST=db
-      - POSTGRES_DB=jukebox
-      - POSTGRES_USER=jukebox
-      - POSTGRES_PASSWORD=jukebox
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy

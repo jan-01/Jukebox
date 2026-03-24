@@ -18,9 +18,11 @@ async function login() {
     const data = await res.json();
 
     if (res.ok) {
-        window.location.href = "/";
-    } else {
-        errorEl.innerText = data.error || "Login fehlgeschlagen.";
+        if (data.mfa_required) {
+            window.location.href = "/mfa-verify";
+        } else {
+            window.location.href = "/";
+        }
     }
 }
 

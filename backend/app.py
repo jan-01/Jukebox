@@ -18,6 +18,7 @@ import psycopg2.extras
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import html
+from flask_dance.contrib.google import make_google_blueprint, google
 
 # -----------------------------
 # APP SETUP
@@ -90,7 +91,22 @@ app.config.update(
 
 Session(app)
 bcrypt = Bcrypt(app)
+# -----------------------------
+# GOOGLE OAUTH (SSO)
+# -----------------------------
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"  # allows HTTP in local dev
 
+google_bp = make_google_blueprint(
+    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    scope=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+    ],
+    redirect_url="/login/google/callback",
+)
+app.register_blueprint(google_bp, url_prefix="/login")
 # -----------------------------
 # DATABASE CONFIG (POSTGRES)
 # -----------------------------
@@ -118,12 +134,17 @@ def init_db():
 
     # Users table with cleaned column
     c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
-        )
-    """)
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL DEFAULT 'OAUTH_USER',
+        totp_secret TEXT,
+        totp_enabled BOOLEAN NOT NULL DEFAULT FALSE
+    )
+""")
+    # Migration: add columns if upgrading an existing database
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret TEXT")
+    c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE")
 
     # Reviews table
     c.execute("""
@@ -313,7 +334,48 @@ def signup():
     except psycopg2.errors.UniqueViolation:
         return jsonify({"error": "Benutzername bereits vergeben", "exists": True}), 409
 
+@app.route("/login/google/callback")
+def google_callback():
+    if not google.authorized:
+        return redirect("/login")
 
+    try:
+        resp = google.get("/oauth2/v2/userinfo")
+        if not resp.ok:
+            return redirect("/login")
+
+        info = resp.json()
+        google_email = info.get("email")
+
+        if not google_email:
+            return redirect("/login")
+
+        # Find or auto-create user based on Google email
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE username = %s", (google_email,))
+        user = cur.fetchone()
+
+        if not user:
+            cur.execute(
+                "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
+                (google_email, "GOOGLE_OAUTH_NO_PASSWORD")
+            )
+            conn.commit()
+            logger.info(f"New user created via Google SSO: '{google_email}'")
+
+        cur.close()
+        conn.close()
+
+        session["user"] = google_email
+        session["last_active"] = datetime.now(UTC).isoformat()
+        logger.info(f"User '{google_email}' logged in via Google SSO.")
+        return redirect("/")
+
+    except Exception:
+        logger.exception("Google OAuth callback failed")
+        return redirect("/login")
+    
 @app.route("/logout")
 def logout():
     username = session.get("user")
