@@ -229,7 +229,7 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           COSIGN_TLOG_UPDATE: "false"
         run: |
-          REPO_LOWER=$(echo "$REPO_LOWER" | tr '[:upper:]' '[:lower:]')
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
           DIGEST=$(docker inspect\
             --format='{{index .RepoDigests 0}}' \
