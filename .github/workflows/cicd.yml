@@ -210,14 +210,31 @@ jobs:
       # Erst wenn alle Quality Gates bestanden sind, wird das Image gepusht.
       # Uncomment to enable (COSIGN_PRIVATE_KEY + COSIGN_PASSWORD ebenfalls nötig
       # um das gepushte Image in der Registry neu zu signieren):
-      # - uses: docker/login-action@v3
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
-      # - name: Push image to registry
-      #   run: |
-      #     docker tag jukebox:latest ghcr.io/${{ github.repository }}:latest
-      #     docker tag jukebox:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
-      #     docker push ghcr.io/${{ github.repository }}:latest
-      #     docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+      - uses: docker/login-action@v3
+        with:
+           registry: ghcr.io
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push image to registry
+        run: |
+           docker tag jukebox:latest ghcr.io/${{ github.repository }}:latest
+           docker tag jukebox:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
+           docker push ghcr.io/${{ github.repository }}:latest
+           docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+      - name: Sign image in registry
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_TLOG_UPDATE: "false"
+        run: |
+          echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
+          DIGEST=$(docker inspect\
+            --format='{{index .RepoDigests 0}}' \
+            ghcr.io/${{ github.repository }}:latest \
+            | cut -d'@' -f2)
+          cosign sign \
+            --key cosign.key \
+            --yes \
+            ghcr.io/${{ github.repository }}@${DIGEST}
+          echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
+          rm -f cosign.key
