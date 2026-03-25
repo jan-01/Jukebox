@@ -215,7 +215,7 @@ jobs:
         with:
            registry: ghcr.io
            username: ${{ github.actor }}
-           password: ${{ secrets.GITHUB_TOKEN }}
+           password: ${{ secrets.GHCR_PAT }}
       - name: Push image to registry
         run: |
            REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
