@@ -48,7 +48,7 @@ jobs:
           bandit -r backend/ --severity-level high -f json -o evidence/sast/bandit.json
       - name: SCA - pip-audit
         run: |
-          pip install pip-audit
+          pip install --upgrade pip-audit
           mkdir -p evidence/sca
           pip-audit -r backend/requirements.txt -f json -o evidence/sca/pip-audit.json --exit-zero
       - name: Secret scan - gitleaks
