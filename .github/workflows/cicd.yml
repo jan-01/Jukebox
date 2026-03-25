@@ -241,5 +241,8 @@ jobs:
             ghcr.io/$REPO_LOWER@${DIGEST}
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
           rm -f cosign.key
-          echo "${{ secrets.GHCR_PAT }}" | docker login -u "${{ github.actor }}" --password-stdin ghcr.io
-          docker pull ghcr.io/jan-01/jukebox:latest
+          curl -X PATCH \
+          -H "Authorization: Bearer ${{ secrets.GHCR_PAT }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/user/packages/container/jukebox \
+          -d '{"visibility":"public"}'
