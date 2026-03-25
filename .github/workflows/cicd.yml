@@ -241,5 +241,5 @@ jobs:
             ghcr.io/$REPO_LOWER@${DIGEST}
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
           rm -f cosign.key
-          echo $GHCR_PAT | docker login ghcr.io -u <github-username> --password-stdin \
+          echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin \
           docker pull ghcr.io/jan-01/jukebox:latest \
