@@ -1,6 +1,8 @@
 .PHONY: install install-dev lint css-build css-watch dev db stop \
-        up down minikube-start build generate-certs create-namespace enable-ingress \
+        up down minikube-start pull-image generate-certs create-namespace enable-ingress \
         load-image apply-secrets apply-manifests wait-healthy port-forward k8s-status k8s-logs
+
+IMAGE := ghcr.io/jukebox-final/jukeboxischmoxi:latest
 
 # Einmalig: Virtualenv + Abhängigkeiten installieren
 install:
@@ -49,12 +51,12 @@ stop:
 # Kubernetes / Minikube targets
 # ===========================================================================
 
-# Build the Docker image locally (CSS must be compiled first)
-build: css-build
-	docker build -t jukebox:local .
+# Pull the Docker image from the registry
+pull-image:
+	docker pull $(IMAGE)
 
 # Full automated deployment — runs all steps in order
-up: minikube-start build generate-certs create-namespace enable-ingress load-image apply-secrets apply-manifests wait-healthy port-forward
+up: minikube-start pull-image generate-certs create-namespace enable-ingress load-image apply-secrets apply-manifests wait-healthy port-forward
 	@echo ""
 	@echo "=== Ready ==="
 	@echo "App : http://localhost:8080"
@@ -140,10 +142,16 @@ enable-ingress:
 	@kubectl rollout status deployment/ingress-nginx-controller \
 		-n ingress-nginx --timeout=120s
 
-# Load the locally built image into Minikube
-load-image:
-	@echo "Loading jukebox:local into Minikube..."
-	minikube image load jukebox:local
+# verify image
+verify-image:
+	@echo "Verifying image signature..."
+	cosign verify --key cosign.pub $(IMAGE)
+	@echo "Signature OK."
+
+# Load the pulled image into Minikube
+load-image: verify-image
+	@echo "Loading $(IMAGE) into Minikube..."
+	minikube image load $(IMAGE)
 
 # Generate .secrets with secure random credentials on first run (gitignored via *.secrets).
 # Delete .secrets to rotate credentials.
