@@ -219,8 +219,8 @@ jobs:
       - name: Push image to registry
         run: |
            REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
-           docker tag jukebox:latest ghcr.io/$REPO_LOWER:latest
-           docker tag jukebox:latest ghcr.io/$REPO_LOWER:${{ github.sha }}
+           docker tag $REPO_LOWER:latest ghcr.io/$REPO_LOWER:latest
+           docker tag $REPO_LOWER:${{ github.sha }} ghcr.io/$REPO_LOWER:${{ github.sha }}
            docker push ghcr.io/$REPO_LOWER:latest
            docker push ghcr.io/$REPO_LOWER:${{ github.sha }}
       - name: Sign image in registry
