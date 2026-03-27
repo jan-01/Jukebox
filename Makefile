@@ -2,7 +2,7 @@
         up down minikube-start pull-image generate-certs create-namespace enable-ingress \
         load-image apply-secrets apply-manifests wait-healthy port-forward k8s-status k8s-logs
 
-IMAGE := ghcr.io/jukebox-final/jukeboxischmoxi:latest
+IMAGE := ghcr.io/jukebox-final/jukebox:latest
 
 # Einmalig: Virtualenv + Abhängigkeiten installieren
 install:
