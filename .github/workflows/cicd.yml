@@ -119,6 +119,7 @@ jobs:
           #COSIGN_TLOG_UPLOAD: "false"
         run: |
           mkdir -p evidence/signing
+          echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
           cosign sign-blob \
             --key cosign.key \
             evidence/build/jukebox.tar.gz \
