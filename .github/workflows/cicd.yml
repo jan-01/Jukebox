@@ -182,8 +182,7 @@ jobs:
           echo "$COSIGN_PUBLIC_KEY" | tr -d '\r' > cosign.pub
           cosign verify-blob \
             --key cosign.pub \
-            --signature evidence/signing/image.sig \
-            --insecure-ignore-tlog=true \
+            --bundle evidence/signing/jukebox.tar.gz.cosign.bundle \
             evidence/build/jukebox.tar.gz \
             2>&1 | tee evidence/signing/verify.log
           rm -f cosign.pub
