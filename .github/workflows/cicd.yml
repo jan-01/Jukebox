@@ -133,16 +133,15 @@ jobs:
             --key cosign.key \
             --output-file evidence/signing/jukebox.tar.gz.cosign \
             evidence/build/jukebox.tar.gz \
-            2>&1 | tee sign.log
+            2>&1 | tee evidence/signing/sign.log
   
-          echo "---" >> sign.log
+          echo "---" >> evidence/signing/sign.log
           echo "File:      jukebox.tar.gz" >> sign.log
           echo "Git SHA:   ${{ github.sha }}" >> sign.log
           echo "Timestamp: $(date -u)" >> sign.log
   
           # Cleanup
           rm -f cosign.key
-          cd ../..
   
       - uses: actions/upload-artifact@v7
         with:
