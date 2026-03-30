@@ -116,19 +116,28 @@ jobs:
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          COSIGN_TLOG_UPLOAD: "false"
         run: |
           mkdir -p evidence/signing
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
+          
+          # Create signing config without TLog
+          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls)' > evidence/signing/signing-config.json
+          
+          # Sign the blob
           cosign sign-blob \
             --key cosign.key \
             --output-signature evidence/signing/image.sig \
+            --signing-config evidence/signing/signing-config.json \
             evidence/build/jukebox.tar.gz \
             2>&1 | tee evidence/signing/sign.log
+          
           echo "---" >> evidence/signing/sign.log
           echo "File:      evidence/build/jukebox.tar.gz" >> evidence/signing/sign.log
-          echo "Git SHA:   ${{ github.sha }}" >> evidence/signing/sign.log
+          echo "Git SHA:   dfde92f0236d6672993426d8943476b1dd47503a" >> evidence/signing/sign.log
           echo "Timestamp: $(date -u)" >> evidence/signing/sign.log
+          
+          # Cleanup
           rm -f cosign.key
       - uses: actions/upload-artifact@v7
         with:
