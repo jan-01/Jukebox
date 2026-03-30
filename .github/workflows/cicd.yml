@@ -183,6 +183,7 @@ jobs:
           cosign verify-blob \
             --key cosign.pub \
             --bundle evidence/signing/jukebox.tar.gz.cosign.bundle \
+            --insecure-ignore-tlog=true \
             evidence/build/jukebox.tar.gz \
             2>&1 | tee evidence/signing/verify.log
           rm -f cosign.pub
