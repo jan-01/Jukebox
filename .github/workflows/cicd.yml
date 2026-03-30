@@ -117,31 +117,36 @@ jobs:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
-          mkdir -p evidence/signing
-          cd $GITHUB_WORKSPACE  # Ensure you are in the project root
+          mkdir -p "$GITHUB_WORKSPACE/evidence/signing"
+          cd "$GITHUB_WORKSPACE"  # Ensure you are in the project root
           
           # Prepare key
-          echo "$COSIGN_KEY" | tr -d '\r' > evidence/signing/cosign.key
+          echo "$COSIGN_KEY" | tr -d '\r' > "$GITHUB_WORKSPACE/evidence/signing/cosign.key"
           
           # Create signing config without TLog
           curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
-            | jq 'del(.rekorTlogUrls)' > evidence/signing/signing-config.json
+            | jq 'del(.rekorTlogUrls)' > "$GITHUB_WORKSPACE/evidence/signing/signing-config.json"
+
+          pwd
+          ls -la evidence/
+          ls -la evidence/signing/
+          ls -la evidence/build/
           
           # Sign the blob (bundle will be written to evidence/signing/)
           cosign sign-blob \
-            --key evidence/signing/cosign.key \
-            --output-file evidence/signing/jukebox.tar.gz.cosign \
-            --signing-config evidence/signing/signing-config.json \
-            evidence/build/jukebox.tar.gz \
-            2>&1 | tee evidence/signing/sign.log
+            --key "$GITHUB_WORKSPACE/evidence/signing/cosign.key" \
+            --output-file "$GITHUB_WORKSPACE/evidence/signing/jukebox.tar.gz.cosign" \
+            --signing-config "$GITHUB_WORKSPACE/evidence/signing/signing-config.json" \
+            "$GITHUB_WORKSPACE/evidence/build/jukebox.tar.gz" \
+            2>&1 | tee "$GITHUB_WORKSPACE/evidence/signing/sign.log"
           
-          echo "---" >> evidence/signing/sign.log
-          echo "File:      evidence/build/jukebox.tar.gz" >> evidence/signing/sign.log
-          echo "Git SHA:   dfde92f0236d6672993426d8943476b1dd47503a" >> evidence/signing/sign.log
-          echo "Timestamp: $(date -u)" >> evidence/signing/sign.log
+          echo "---" >> "$GITHUB_WORKSPACE/evidence/signing/sign.log"
+          echo "File:      $GITHUB_WORKSPACE/evidence/build/jukebox.tar.gz" >> "$GITHUB_WORKSPACE/evidence/signing/sign.log"
+          echo "Git SHA:   dfde92f0236d6672993426d8943476b1dd47503a" >> "$GITHUB_WORKSPACE/evidence/signing/sign.log"
+          echo "Timestamp: $(date -u)" >> "$GITHUB_WORKSPACE/evidence/signing/sign.log"
           
           # Cleanup
-          rm -f evidence/signing/cosign.key
+          rm -f "$GITHUB_WORKSPACE/evidence/signing/cosign.key"
       - uses: actions/upload-artifact@v7
         with:
           name: signing-evidence
