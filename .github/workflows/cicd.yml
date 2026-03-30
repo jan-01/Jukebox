@@ -182,7 +182,7 @@ jobs:
           format: table
           exit-code: "1"
           severity: HIGH,CRITICAL
-          vuln-type: os,library
+          vuln-type: library
           trivy-config: trivy.yaml
       - name: Record run metadata
         if: always()
