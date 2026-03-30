@@ -126,15 +126,11 @@ jobs:
           # Create signing config without TLog
           curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
             | jq 'del(.rekorTlogUrls)' > "$GITHUB_WORKSPACE/evidence/signing/signing-config.json"
-
-          pwd
-          ls -la evidence/
-          ls -la evidence/signing/
-          ls -la evidence/build/
           
           # Sign the blob (bundle will be written to evidence/signing/)
           cosign sign-blob \
             --key "$GITHUB_WORKSPACE/evidence/signing/cosign.key" \
+            --bundle "$GITHUB_WORKSPACE/evidence/signing/jukebox.tar.gz.cosign.bundle" \
             --output-file "$GITHUB_WORKSPACE/evidence/signing/jukebox.tar.gz.cosign" \
             --signing-config "$GITHUB_WORKSPACE/evidence/signing/signing-config.json" \
             "$GITHUB_WORKSPACE/evidence/build/jukebox.tar.gz" \
