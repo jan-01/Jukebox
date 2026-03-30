@@ -135,9 +135,8 @@ jobs:
           # Sign the blob (bundle will be written next to the tarball)
           cosign sign-blob \
             --key cosign.key \
-            --signing-config signing-config.json \
+            --output-file jukebox.tar.gz.cosign \
             jukebox.tar.gz \
-            --debug \
             2>&1 | tee sign.log
   
           echo "---" >> sign.log
