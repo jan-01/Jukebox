@@ -129,14 +129,15 @@ jobs:
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
   
           # Create signing config without TLog
-          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
-            | jq 'del(.rekorTlogUrls)' > signing-config.json
+          #curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+          #  | jq 'del(.rekorTlogUrls)' > signing-config.json
   
           # Sign the blob (bundle will be written next to the tarball)
           cosign sign-blob \
             --key cosign.key \
             --signing-config signing-config.json \
             jukebox.tar.gz \
+            --debug \
             2>&1 | tee sign.log
   
           echo "---" >> sign.log
