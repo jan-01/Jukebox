@@ -122,6 +122,7 @@ jobs:
           mkdir -p evidence/signing
           # Copy tarball to a writable folder
           cp evidence/build/jukebox.tar.gz evidence/signing/
+          ls -la evidence/signing/
           cd evidence/signing
   
           # Prepare key
