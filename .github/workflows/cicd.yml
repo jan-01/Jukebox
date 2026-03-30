@@ -120,23 +120,19 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           mkdir -p evidence/signing
-          # Copy tarball to a writable folder
-          cp evidence/build/jukebox.tar.gz evidence/signing/
-          ls -la evidence/signing/
-          cd evidence/signing
-  
+          
           # Prepare key
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
   
           # Create signing config without TLog
           #curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
           #  | jq 'del(.rekorTlogUrls)' > signing-config.json
-  
+          ls -la evidence/signing
           # Sign the blob (bundle will be written next to the tarball)
           cosign sign-blob \
             --key cosign.key \
-            --output-file jukebox.tar.gz.cosign \
-            jukebox.tar.gz \
+            --output-file evidence/signing/jukebox.tar.gz.cosign \
+            evidence/build/jukebox.tar.gz \
             2>&1 | tee sign.log
   
           echo "---" >> sign.log
@@ -145,7 +141,7 @@ jobs:
           echo "Timestamp: $(date -u)" >> sign.log
   
           # Cleanup
-          rm -f cosign.key signing-config.json
+          rm -f cosign.key
           cd ../..
   
       - uses: actions/upload-artifact@v7
