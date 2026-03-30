@@ -111,43 +111,30 @@ jobs:
         with:
           name: docker-image
           path: evidence/build
-  
       - uses: sigstore/cosign-installer@v4.1.0
-  
       - name: Sign image tar
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          COSIGN_TLOG_UPLOAD: "false"
         run: |
           mkdir -p evidence/signing
-          
-          # Prepare key
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
-  
-          # Create signing config without TLog
-          #curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
-          #  | jq 'del(.rekorTlogUrls)' > signing-config.json
-          ls -la evidence/signing
-          # Sign the blob (bundle will be written next to the tarball)
           cosign sign-blob \
             --key cosign.key \
-            --output-file evidence/signing/jukebox.tar.gz.cosign \
+            --output-signature evidence/signing/image.sig \
             evidence/build/jukebox.tar.gz \
             2>&1 | tee evidence/signing/sign.log
-  
           echo "---" >> evidence/signing/sign.log
-          echo "File:      jukebox.tar.gz" >> sign.log
-          echo "Git SHA:   ${{ github.sha }}" >> sign.log
-          echo "Timestamp: $(date -u)" >> sign.log
-  
-          # Cleanup
+          echo "File:      evidence/build/jukebox.tar.gz" >> evidence/signing/sign.log
+          echo "Git SHA:   ${{ github.sha }}" >> evidence/signing/sign.log
+          echo "Timestamp: $(date -u)" >> evidence/signing/sign.log
           rm -f cosign.key
-  
       - uses: actions/upload-artifact@v7
         with:
           name: signing-evidence
           path: |
-            evidence/signing/jukebox.tar.gz.cosign
+            evidence/signing/image.sig
             evidence/signing/sign.log
 
   # ── e. Quality Gate ────────────────────────────────────────────────────────
