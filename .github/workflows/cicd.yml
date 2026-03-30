@@ -147,8 +147,9 @@ jobs:
         with:
           name: signing-evidence
           path: |
-            evidence/signing/image.sig
+            evidence/signing/jukebox.tar.gz.cosign
             evidence/signing/sign.log
+            evidence/signing/jukebox.tar.gz.cosign.bundle
 
   # ── e. Quality Gate ────────────────────────────────────────────────────────
   # Bedingungen:
