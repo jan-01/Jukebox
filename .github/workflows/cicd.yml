@@ -128,9 +128,9 @@ jobs:
           cosign sign-blob \
             --key cosign.key \
             --signing-config signing-config.json \
-            --output-signature evidence/signing/jukebox.tar.gz.sig \
             evidence/build/jukebox.tar.gz \
             2>&1 | tee evidence/signing/sign.log
+          mv evidence/build/jukebox.tar.gz.cosign evidence/signing/
           echo "---" >> evidence/signing/sign.log
           echo "File:      evidence/build/jukebox.tar.gz" >> evidence/signing/sign.log
           echo "Git SHA:   ${{ github.sha }}" >> evidence/signing/sign.log
