@@ -254,14 +254,27 @@ jobs:
           DIGEST="${{ steps.push.outputs.digest }}"
           REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
       
+          # Signing config: kein TLog, aber OCI-Push explizit aktiviert
+          cat > signing-config.json << 'EOF'
+          {
+            "mediaType": "application/vnd.dev.sigstore.signingconfig.v0.2+json",
+            "ociSigningTargets": [
+              {
+                "name": "ghcr.io",
+                "selector": "ghcr.io/**"
+              }
+            ]
+          }
+          EOF
+      
           echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
+            --signing-config signing-config.json \
             --yes \
-            --allow-insecure-registry=false \
             ghcr.io/${REPO_LOWER}@${DIGEST} \
             2>&1 | tee sign-registry.log
       
           cat sign-registry.log
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
-          rm -f cosign.key
+          rm -f cosign.key signing-config.json
