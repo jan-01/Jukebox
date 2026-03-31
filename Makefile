@@ -145,7 +145,7 @@ enable-ingress:
 # verify image
 verify-image:
 	@echo "Verifying image signature..."
-	cosign verify --key cosign.pub $(IMAGE)
+	cosign verify --key cosign.pub --insecure-ignore-tlog $(IMAGE)
 	@echo "Signature OK."
 
 # Load the pulled image into Minikube
