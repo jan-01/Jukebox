@@ -243,13 +243,7 @@ jobs:
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
           echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-  
+          
       - name: Sign image in registry
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
