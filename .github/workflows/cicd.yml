@@ -249,18 +249,21 @@ jobs:
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          COSIGN_TLOG_UPDATE: "false"
         run: |
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
           DIGEST="${{ steps.push.outputs.digest }}"
           REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
-          
+      
+          # Signing config ohne TLog – identisch zum sign-Job
+          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls)' > signing-config.json
+      
           echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
-            --tlog-upload=false \
+            --signing-config signing-config.json \
             --yes \
             ghcr.io/${REPO_LOWER}@${DIGEST}
-          
+      
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
-          rm -f cosign.key
+          rm -f cosign.key signing-config.json
