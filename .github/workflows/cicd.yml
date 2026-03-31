@@ -238,41 +238,36 @@ jobs:
           docker tag jukebox:latest ghcr.io/$REPO_LOWER:${{ github.sha }}
           docker push ghcr.io/$REPO_LOWER:latest
           docker push ghcr.io/$REPO_LOWER:${{ github.sha }}
-          # Digest direkt aus Registry holen — zuverlässiger als docker inspect
           DIGEST=$(docker buildx imagetools inspect \
             ghcr.io/$REPO_LOWER:latest \
             --format '{{json .Manifest}}' | jq -r '.digest')
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
           echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
 
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+  
       - name: Sign image in registry
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-          COSIGN_REGISTRY_PASSWORD: ${{ secrets.GHCR_PAT }}
-          COSIGN_REGISTRY_USERNAME: ${{ github.actor }}
         run: |
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
-      
-          # cosign explizit bei der Registry einloggen
-          cosign login ghcr.io \
-            --username ${{ github.actor }} \
-            --password ${{ secrets.GHCR_PAT }}
       
           DIGEST="${{ steps.push.outputs.digest }}"
           REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
       
-          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
-            | jq 'del(.rekorTlogUrls)' > signing-config.json
-      
           echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
-            --signing-config signing-config.json \
             --yes \
+            --allow-insecure-registry=false \
             ghcr.io/${REPO_LOWER}@${DIGEST} \
             2>&1 | tee sign-registry.log
       
           cat sign-registry.log
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
-          rm -f cosign.key signing-config.json
+          rm -f cosign.key
