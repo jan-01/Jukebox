@@ -231,27 +231,36 @@ jobs:
            username: ${{ github.actor }}
            password: ${{ secrets.GHCR_PAT }}
       - name: Push image to registry
+        id: push
         run: |
-           REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
-           docker tag jukebox:latest ghcr.io/$REPO_LOWER:latest
-           docker tag jukebox:latest ghcr.io/$REPO_LOWER:${{ github.sha }}
-           docker push ghcr.io/$REPO_LOWER:latest
-           docker push ghcr.io/$REPO_LOWER:${{ github.sha }}
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          docker tag jukebox:latest ghcr.io/$REPO_LOWER:latest
+          docker tag jukebox:latest ghcr.io/$REPO_LOWER:${{ github.sha }}
+          docker push ghcr.io/$REPO_LOWER:latest
+          docker push ghcr.io/$REPO_LOWER:${{ github.sha }}
+          # Digest direkt aus Registry holen — zuverlässiger als docker inspect
+          DIGEST=$(docker buildx imagetools inspect \
+            ghcr.io/$REPO_LOWER:latest \
+            --format '{{json .Manifest}}' | jq -r '.digest')
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
+
       - name: Sign image in registry
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           COSIGN_TLOG_UPDATE: "false"
         run: |
-          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
-          DIGEST=$(docker inspect\
-            --format='{{index .RepoDigests 0}}' \
-            ghcr.io/$REPO_LOWER:latest \
-            | cut -d'@' -f2)
+          DIGEST="${{ steps.push.outputs.digest }}"
+          REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
+          
+          echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
+            --tlog-upload=false \
             --yes \
-            ghcr.io/$REPO_LOWER@${DIGEST}
+            ghcr.io/${REPO_LOWER}@${DIGEST}
+          
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
           rm -f cosign.key
