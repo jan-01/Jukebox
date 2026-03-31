@@ -254,11 +254,13 @@ jobs:
           DIGEST="${{ steps.push.outputs.digest }}"
           REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
 
+          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls)' > "$GITHUB_WORKSPACE/evidence/signing/signing-config.json"
+
           echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
-            --tlog-upload=false \
-            --yes \
+            --signing-config "$GITHUB_WORKSPACE/evidence/signing/signing-config.json" \
             ghcr.io/${REPO_LOWER}@${DIGEST} \
             2>&1 | tee sign-registry.log
 
