@@ -5,6 +5,25 @@ Jukebox ist eine webbasierte Musik-Review-Plattform — ähnlich wie Letterboxd,
 Das Projekt entstand im Rahmen eines DHBW-Universitätsprojekts und demonstriert eine vollständige Web-Applikation mit Flask-Backend, PostgreSQL-Datenbank und Kubernetes-Deployment.
 
 ---
+## Setup Guide
+**Vorbedingungen:**
+- Docker installiert und Nutzer ist in Docker-group
+- Kubectl installiert
+- Minikube installiert
+- Cosign installiert
+- Openssl intalliert
+
+**Cluster deployen**
+1. Repository klonen
+2. Um den Cluster hochzufahren innerhalb von repository folgenden Command ausführen:
+   ```bash
+   make up
+   ```
+3. Um den Cluster wieder herunterzufahren:
+   ```bash
+   make down
+   ```
+---
 
 ## Security Requirements
 
