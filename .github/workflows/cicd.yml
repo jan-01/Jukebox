@@ -230,19 +230,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # Wird für den Promote-Schritt benötigt (s.u.)
+      packages: write
     steps:
-      - uses: actions/download-artifact@v6  
+      - uses: actions/download-artifact@v6
         with:
           name: docker-image
           path: evidence/build
-      - name: Load Docker image                 # 
+  
+      - name: Load Docker image
         run: docker load < evidence/build/jukebox.tar.gz
+  
+      - uses: sigstore/cosign-installer@v4.1.0
+  
+      - name: Create evidence directories
+        run: mkdir -p evidence/signing
+  
       - uses: docker/login-action@v3
         with:
-           registry: ghcr.io
-           username: ${{ github.actor }}
-           password: ${{ secrets.GHCR_PAT }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+  
       - name: Push image to registry
         id: push
         run: |
@@ -256,21 +264,20 @@ jobs:
             --format '{{json .}}' | jq -r '.manifest.digest')
           echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
           echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
-
+  
       - name: Sign image in registry
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           echo "$COSIGN_KEY" | tr -d '\r' > cosign.key
-
+  
           DIGEST="${{ steps.push.outputs.digest }}"
           REPO_LOWER="${{ steps.push.outputs.repo_lower }}"
-
-          # Signing-Config ohne Transparency Log (kein Rekor/TLog)
+  
           curl -sf https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
             | jq 'del(.rekorTlogUrls)' > signing-config.json
-
+  
           echo "Signing ghcr.io/${REPO_LOWER}@${DIGEST}..."
           cosign sign \
             --key cosign.key \
@@ -278,7 +285,15 @@ jobs:
             --yes \
             ghcr.io/${REPO_LOWER}@${DIGEST} \
             2>&1 | tee sign-registry.log
-
+  
           cat sign-registry.log
           echo "Signed digest: ${DIGEST}" >> evidence/signing/sign.log
           rm -f cosign.key signing-config.json
+  
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: push-and-sign-evidence
+          path: |
+            evidence/signing/sign.log
+            sign-registry.log
