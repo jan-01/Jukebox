@@ -225,6 +225,13 @@ jobs:
       # Erst wenn alle Quality Gates bestanden sind, wird das Image gepusht.
       # Uncomment to enable (COSIGN_PRIVATE_KEY + COSIGN_PASSWORD ebenfalls nötig
       # um das gepushte Image in der Registry neu zu signieren):
+  push-and-sign:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # Wird für den Promote-Schritt benötigt (s.u.)
+    steps:
       - uses: docker/login-action@v3
         with:
            registry: ghcr.io
