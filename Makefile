@@ -144,13 +144,13 @@ enable-ingress:
 
 # verify image
 verify-image:
-    @echo "Verifying image signature..."
-    $(eval DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' $(IMAGE)))
-    @cosign verify \
-            --key cosign.pub \
-            --insecure-ignore-tlog \
-            $(DIGEST) > /dev/null 2>&1
-    @echo "Signature OK."
+	@echo "Verifying image signature..."
+	$(eval DIGEST := $(shell docker inspect --format='{{index .RepoDigests 0}}' $(IMAGE)))
+	@cosign verify \
+		--key cosign.pub \
+		--insecure-ignore-tlog \
+		$(DIGEST) > /dev/null 2>&1
+	@echo "Signature OK."
 
 # Load the pulled image into Minikube
 load-image: verify-image
