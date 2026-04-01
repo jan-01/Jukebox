@@ -232,6 +232,12 @@ jobs:
       contents: read
       packages: write   # Wird für den Promote-Schritt benötigt (s.u.)
     steps:
+      - uses: actions/download-artifact@v6  
+        with:
+          name: docker-image
+          path: evidence/build
+      - name: Load Docker image                 # 
+        run: docker load < evidence/build/jukebox.tar.gz
       - uses: docker/login-action@v3
         with:
            registry: ghcr.io
