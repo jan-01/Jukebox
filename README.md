@@ -19,7 +19,8 @@ Das Projekt entstand im Rahmen eines DHBW-Universitätsprojekts und demonstriert
    ```bash
    make up
    ```
-3. Um den Cluster wieder herunterzufahren:
+3. Den Anweisungen in der Ausgabe folgen.
+4. Um den Cluster wieder herunterzufahren:
    ```bash
    make down
    ```
