@@ -1,1 +1,1 @@
-export BUNDLE_ENTERPRISE__CONTRIBSYS__COM=cafebabe:deadbeef
+export TEST=cafebabe:deadbeef
